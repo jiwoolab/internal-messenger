@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>사내 실시간 메신저</title>
+  <style>
+    /* -------------------------------------------------------------------------- */
+    /* 1. 디자인 시스템 & CSS 변수 (Design System)                                  */
+    /* -------------------------------------------------------------------------- */
+    :root {
+      /* 색상 Palette */
+      --bg-sidebar: #1E293B;        /* 사이드바: 어두운 남색 (Slate 800) */
+      --bg-sidebar-hover: #334155;  /* 사이드바 호버/활성 배경색 (Slate 700) */
+      --bg-sidebar-text: #F8FAFC;   /* 사이드바 텍스트 색상 */
+      --bg-body: #FFFFFF;          /* 본문 배경: 흰색 */
+      --bg-header: #FFFFFF;        /* 헤더 배경 */
+      --color-primary: #2563EB;     /* 포인트 컬러: 파란색 (Blue 600) */
+      --color-primary-hover: #1D4ED8; /* 포인트 컬러 호버 */
+      
+      /* 메시지 말풍선 색상 */
+      --chat-my-bg: #2563EB;        /* 내 메시지 배경: 파란색 */
+      --chat-my-text: #FFFFFF;      /* 내 메시지 글자: 흰색 */
+      --chat-other-bg: #E2E8F0;     /* 상대 메시지 배경: 회색 (Slate 200) */
+      --chat-other-text: #0F172A;   /* 상대 메시지 글자: 어두운 남색 */
+      
+      /* 테두리 및 그림자 */
+      --border-color: #E2E8F0;
+      --shadow-card: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+
+      /* 치수 */
+      --sidebar-width: 240px;
+      --header-height: 60px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    body {
+      height: 100vh;
+      background-color: #F1F5F9;
+      color: #0F172A;
+      overflow: hidden;
+    }
+
+    /* -------------------------------------------------------------------------- */
+    /* 2. 로그인 전 화면 (Login Screen)                                            */
+    /* -------------------------------------------------------------------------- */
+    #login-screen {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      width: 100vw;
+      background-color: #F1F5F9;
+    }
+
+    .login-card {
+      width: 360px;
+      padding: 32px;
+      background-color: #FFFFFF;
+      border-radius: 12px;
+      box-shadow: var(--shadow-card);
+      text-align: center;
+    }
+
+    .login-card h1 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #0F172A;
+      margin-bottom: 8px;
+    }
+
+    .login-card p {
+      font-size: 14px;
+      color: #64748B;
+      margin-bottom: 24px;
+    }
+
+    .google-login-btn {
+      width: 100%;
+      padding: 12px;
+      background-color: #FFFFFF;
+      border: 1px solid #CBD5E1;
+      border-radius: 8px;
+      color: #1E293B;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: background-color 0.2s;
+    }
+
+    .google-login-btn:hover {
+      background-color: #F8FAFC;
+    }
+
+    /* -------------------------------------------------------------------------- */
+    /* 3. 로그인 후 메인 화면 Layout                                                */
+    /* -------------------------------------------------------------------------- */
+    #main-app {
+      display: none; /* 로그인 후 JS로 flex 전환 */
+      height: 100vh;
+      width: 100vw;
+    }
+
+    /* 3.1 왼쪽 사이드바 (240px) */
+    .sidebar {
+      width: var(--sidebar-width);
+      background-color: var(--bg-sidebar);
+      color: var(--bg-sidebar-text);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+
+    .sidebar-brand {
+      padding: 20px;
+      font-size: 18px;
+      font-weight: 700;
+      color: #FFFFFF;
+      border-bottom: 1px solid var(--bg-sidebar-hover);
+    }
+
+    .menu-list {
+      list-style: none;
+      margin-top: 10px;
+    }
+
+    .menu-item {
+      padding: 12px 20px;
+      font-size: 15px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--bg-sidebar-text);
+      border-left: 4px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .menu-item:hover {
+      background-color: var(--bg-sidebar-hover);
+    }
+
+    .menu-item.active {
+      background-color: var(--bg-sidebar-hover);
+      border-left: 4px solid var(--color-primary);
+      font-weight: 600;
+    }
+
+    /* 3.2 메인 컨텐츠 영역 (헤더 + 본문) */
+    .main-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background-color: var(--bg-body);
+      overflow: hidden;
+    }
+
+    /* 상단 헤더 (60px) */
+    .header {
+      height: var(--header-height);
+      background-color: var(--bg-header);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      flex-shrink: 0;
+    }
+
+    .header-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #0F172A;
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .user-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #334155;
+    }
+
+    .logout-btn {
+      background: transparent;
+      border: 1px solid #CBD5E1;
+      color: #64748B;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .logout-btn:hover {
+      background-color: #F1F5F9;
+      color: #0F172A;
+    }
+
+    /* 본문 콘텐츠 스위칭 영역 */
+    .content-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* -------------------------------------------------------------------------- */
+    /* 4. 본문 영역: 💬 사내 채팅방 UI                                              */
+    /* -------------------------------------------------------------------------- */
+    #view-chat {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      width: 100%;
+    }
+
+    /* 채팅 메시지 내역 */
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      background-color: #FAFAFA;
+    }
+
+    .message-group {
+      display: flex;
+      flex-direction: column;
+      max-width: 60%;
+    }
+
+    .message-group.mine {
+      align-self: flex-end;
+      align-items: flex-end;
+    }
+
+    .message-group.other {
+      align-self: flex-start;
+      align-items: flex-start;
+    }
+
+    .sender-name {
+      font-size: 12px;
+      color: #64748B;
+      margin-bottom: 4px;
+      padding: 0 4px;
+    }
+
+    .message-bubble-wrapper {
+      display: flex;
+      align-items: flex-end;
+      gap: 6px;
+    }
+
+    .message-group.mine .message-bubble-wrapper {
+      flex-direction: row-reverse;
+    }
+
+    .message-bubble {
+      padding: 10px 14px;
+      font-size: 14px;
+      line-height: 1.5;
+      word-break: break-word;
+    }
+
+    .message-group.mine .message-bubble {
+      background-color: var(--chat-my-bg);
+      color: var(--chat-my-text);
+      border-radius: 16px 16px 2px 16px;
+    }
+
+    .message-group.other .message-bubble {
+      background-color: var(--chat-other-bg);
+      color: var(--chat-other-text);
+      border-radius: 16px 16px 16px 2px;
+    }
+
+    .message-time {
+      font-size: 10px;
+      color: #94A3B8;
+      white-space: nowrap;
+    }
+
+    /* 하단 메시지 입력창 */
+    .chat-input-area {
+      padding: 16px 24px;
+      background-color: #FFFFFF;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .chat-input {
+      flex: 1;
+      padding: 12px 16px;
+      border: 1px solid #CBD5E1;
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .chat-input:focus {
+      border-color: var(--color-primary);
+    }
+
+    .send-btn {
+      background-color: var(--color-primary);
+      color: #FFFFFF;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .send-btn:hover {
+      background-color: var(--color-primary-hover);
+    }
+
+    /* -------------------------------------------------------------------------- */
+    /* 5. 본문 영역: 📚 게시판 준비 중 UI                                           */
+    /* -------------------------------------------------------------------------- */
+    #view-board {
+      display: none;
+      height: 100%;
+      width: 100%;
+      justify-content: center;
+      align-items: center;
+      color: #94A3B8;
+      font-size: 18px;
+      font-weight: 500;
+      background-color: #FFFFFF;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ========================================================================== -->
+  <!-- 1. 로그인 전 화면                                                           -->
+  <!-- ========================================================================== -->
+  <div id="login-screen">
+    <div class="login-card">
+      <h1>사내 메신저</h1>
+      <p>서비스 이용을 위해 로그인해주세요.</p>
+      <button class="google-login-btn" id="google-login-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+        </svg>
+        Google 계정으로 로그인
+      </button>
+    </div>
+  </div>
+
+  <!-- ========================================================================== -->
+  <!-- 2. 로그인 후 메인 화면                                                      -->
+  <!-- ========================================================================== -->
+  <div id="main-app">
+    <!-- 2.1 왼쪽 사이드바 (240px) -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">🏢 TechCorp Messenger</div>
+      <ul class="menu-list">
+        <li class="menu-item active" data-menu="chat">💬 사내 채팅방</li>
+        <li class="menu-item" data-menu="board">📚 게시판</li>
+      </ul>
+    </aside>
+
+    <!-- 2.2 메인 컨텐츠 영역 -->
+    <main class="main-container">
+      <!-- 상단 헤더 -->
+      <header class="header">
+        <div class="header-title" id="header-title">💬 사내 채팅방</div>
+        <div class="user-profile">
+          <span class="user-name" id="user-name-display">👤 게스트</span>
+          <button class="logout-btn" id="logout-btn">로그아웃</button>
+        </div>
+      </header>
+
+      <!-- 본문 스위칭 컨텐츠 -->
+      <div class="content-area">
+        <!-- 💬 사내 채팅방 -->
+        <section id="view-chat">
+          <div class="chat-messages" id="chat-messages">
+            <!-- JS로 동적 렌더링 됩니다 -->
+          </div>
+          <div class="chat-input-area">
+            <input type="text" id="chat-input" class="chat-input" placeholder="메시지를 입력하세요..." autocomplete="off">
+            <button id="send-btn" class="send-btn">전송</button>
+          </div>
+        </section>
+
+        <!-- 📚 게시판 -->
+        <section id="view-board">
+          📚 게시판 기능은 현재 준비 중입니다.
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <!-- ========================================================================== -->
+  <!-- 3. 자바스크립트 로직 (State & Interactions)                                 -->
+  <!-- ========================================================================== -->
+  <script>
+    // --------------------------------------------------------------------------
+    // 상태 변수 (State Management)
+    // --------------------------------------------------------------------------
+    let currentUser = null; // { name: '게스트', email: 'guest@company.com' }
+    let currentMenu = 'chat'; // 'chat' | 'board'
+
+    // 초기 더미 채팅 데이터
+    let chatMessages = [
+      { id: 1, sender: '김철수 수석', isMine: false, text: '안녕하세요! 오늘 사내 실시간 메신저 UI 검토 건 관련해서 공유드립니다.', time: '10:00 AM' },
+      { id: 2, sender: '이영희 팀장', isMine: false, text: '네 확인했습니다. 프론트엔드 단일 파일로 동작하게 구성 중이시군요!', time: '10:02 AM' },
+      { id: 3, sender: '게스트', isMine: true, text: '네, 디자인 시스템과 클릭 이벤트 동작까지 완성해두었습니다.', time: '10:05 AM' }
+    ];
+
+    // DOM 요소 참조
+    const loginScreen = document.getElementById('login-screen');
+    const mainApp = document.getElementById('main-app');
+    const googleLoginBtn = document.getElementById('google-login-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+    
+    const menuItems = document.querySelectorAll('.menu-item');
+    const headerTitle = document.getElementById('header-title');
+    const userNameDisplay = document.getElementById('user-name-display');
+
+    const viewChat = document.getElementById('view-chat');
+    const viewBoard = document.getElementById('view-board');
+    const chatMessagesContainer = document.getElementById('chat-messages');
+    const chatInput = document.getElementById('chat-input');
+    const sendBtn = document.getElementById('send-btn');
+
+    // --------------------------------------------------------------------------
+    // 1. 로그인 / 로그아웃 처리
+    // --------------------------------------------------------------------------
+    googleLoginBtn.addEventListener('click', () => {
+      // TODO: Supabase 연동 - Google OAuth 로그인 처리
+      // await supabase.auth.signInWithOAuth({ provider: 'google' });
+      
+      currentUser = { name: '게스트', email: 'guest@company.com' };
+      userNameDisplay.textContent = `👤 ${currentUser.name}`;
+
+      loginScreen.style.display = 'none';
+      mainApp.style.display = 'flex';
+      
+      renderChatMessages();
+    });
+
+    logoutBtn.addEventListener('click', () => {
+      // TODO: Supabase 연동 - 로그아웃 처리
+      // await supabase.auth.signOut();
+
+      currentUser = null;
+      mainApp.style.display = 'none';
+      loginScreen.style.display = 'flex';
+    });
+
+    // --------------------------------------------------------------------------
+    // 2. 메뉴 전환 (사이드바)
+    // --------------------------------------------------------------------------
+    menuItems.forEach(item => {
+      item.addEventListener('click', () => {
+        const selectedMenu = item.getAttribute('data-menu');
+        if (currentMenu === selectedMenu) return;
+
+        currentMenu = selectedMenu;
+
+        // 메뉴 UI 강조 업데이트
+        menuItems.forEach(m => m.classList.remove('active'));
+        item.classList.add('active');
+
+        // 헤더 타이틀 및 화면 전환
+        if (currentMenu === 'chat') {
+          headerTitle.textContent = '💬 사내 채팅방';
+          viewChat.style.display = 'flex';
+          viewBoard.style.display = 'none';
+          scrollToBottom();
+        } else if (currentMenu === 'board') {
+          headerTitle.textContent = '📚 게시판';
+          viewChat.style.display = 'none';
+          viewBoard.style.display = 'flex';
+        }
+      });
+    });
+
+    // --------------------------------------------------------------------------
+    // 3. 채팅 메시지 렌더링 및 입력 처리
+    // --------------------------------------------------------------------------
+    function renderChatMessages() {
+      chatMessagesContainer.innerHTML = '';
+      
+      chatMessages.forEach(msg => {
+        const groupEl = document.createElement('div');
+        groupEl.className = `message-group ${msg.isMine ? 'mine' : 'other'}`;
+
+        let html = '';
+        if (!msg.isMine) {
+          html += `<div class="sender-name">${msg.sender}</div>`;
+        }
+        html += `
+          <div class="message-bubble-wrapper">
+            <div class="message-bubble">${escapeHtml(msg.text)}</div>
+            <div class="message-time">${msg.time}</div>
+          </div>
+        `;
+        
+        groupEl.innerHTML = html;
+        chatMessagesContainer.appendChild(groupEl);
+      });
+
+      scrollToBottom();
+    }
+
+    function sendMessage() {
+      const text = chatInput.value.trim();
+      if (!text) return;
+
+      const now = new Date();
+      const hours = now.getHours();
+      const minutes = now.getMinutes().toString().padStart(2, '0');
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      const formattedHours = hours % 12 || 12;
+      const timeStr = `${formattedHours}:${minutes} ${ampm}`;
+
+      const newMsg = {
+        id: Date.now(),
+        sender: currentUser ? currentUser.name : '게스트',
+        isMine: true,
+        text: text,
+        time: timeStr
+      };
+
+      // TODO: Supabase 연동 - DB insert 및 Realtime 브로드캐스트 전송
+      // await supabase.from('messages').insert([{ text: text, sender_id: currentUser.id }]);
+
+      chatMessages.push(newMsg);
+      renderChatMessages();
+
+      chatInput.value = '';
+      chatInput.focus();
+    }
+
+    function scrollToBottom() {
+      chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+    }
+
+    // 이벤트 리스너: 전송 버튼 및 엔터키 입력
+    sendBtn.addEventListener('click', sendMessage);
+    chatInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        sendMessage();
+      }
+    });
+  </script>
+</body>
+</html>
