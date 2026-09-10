@@ -392,11 +392,15 @@
     .emoji-toggle-btn {
       background: none;
       border: none;
-      font-size: 20px;
+      font-size: 22px;
       cursor: pointer;
-      padding: 6px 8px;
+      padding: 6px 10px;
       border-radius: 6px;
       transition: background-color 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
     }
 
     .emoji-toggle-btn:hover {
@@ -404,33 +408,34 @@
     }
 
     .emoji-picker-popup {
-      display: none; /* JS로 토글 */
+      display: none; /* JS로 active 클래스 붙으면 grid로 전환 */
       position: absolute;
-      bottom: 70px;
-      left: 24px;
+      bottom: 75px;
+      left: 20px;
       background: #FFFFFF;
       border: 1px solid var(--border-color);
       border-radius: 12px;
       padding: 12px;
-      box-shadow: var(--shadow-card);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
       width: 280px;
       grid-template-columns: repeat(6, 1fr);
       gap: 8px;
-      z-index: 100;
+      z-index: 9999; /* 다른 모든 레이어보다 위에 표시 */
     }
 
     .emoji-picker-popup.active {
-      display: grid;
+      display: grid !important;
     }
 
     .emoji-item {
-      font-size: 22px;
+      font-size: 24px;
       text-align: center;
       cursor: pointer;
-      padding: 4px;
+      padding: 6px;
       border-radius: 6px;
       transition: transform 0.1s, background-color 0.1s;
       user-select: none;
+      line-height: 1;
     }
 
     .emoji-item:hover {
