@@ -381,6 +381,62 @@
       0%, 80%, 100% { transform: scale(0); }
       40% { transform: scale(1.0); }
     }
+
+    /* -------------------------------------------------------------------------- */
+    /* 7. 이모티콘(Emoji) 피커 팝업 UI                                              */
+    /* -------------------------------------------------------------------------- */
+    .chat-input-area {
+      position: relative; /* 팝업 위치 기준 */
+    }
+
+    .emoji-toggle-btn {
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 6px 8px;
+      border-radius: 6px;
+      transition: background-color 0.2s;
+    }
+
+    .emoji-toggle-btn:hover {
+      background-color: #F1F5F9;
+    }
+
+    .emoji-picker-popup {
+      display: none; /* JS로 토글 */
+      position: absolute;
+      bottom: 70px;
+      left: 24px;
+      background: #FFFFFF;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: var(--shadow-card);
+      width: 280px;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 8px;
+      z-index: 100;
+    }
+
+    .emoji-picker-popup.active {
+      display: grid;
+    }
+
+    .emoji-item {
+      font-size: 22px;
+      text-align: center;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 6px;
+      transition: transform 0.1s, background-color 0.1s;
+      user-select: none;
+    }
+
+    .emoji-item:hover {
+      background-color: #F1F5F9;
+      transform: scale(1.2);
+    }
   </style>
 </head>
 <body>
@@ -436,6 +492,29 @@
             <!-- JS로 동적 렌더링 됩니다 -->
           </div>
           <div class="chat-input-area">
+            <!-- 이모지 선택 팝업 -->
+            <div class="emoji-picker-popup" id="emoji-picker">
+              <span class="emoji-item">😀</span>
+              <span class="emoji-item">😂</span>
+              <span class="emoji-item">😍</span>
+              <span class="emoji-item">👍</span>
+              <span class="emoji-item">🔥</span>
+              <span class="emoji-item">🎉</span>
+              <span class="emoji-item">😎</span>
+              <span class="emoji-item">🙌</span>
+              <span class="emoji-item">❤️</span>
+              <span class="emoji-item">👏</span>
+              <span class="emoji-item">🚀</span>
+              <span class="emoji-item">💡</span>
+              <span class="emoji-item">👀</span>
+              <span class="emoji-item">✨</span>
+              <span class="emoji-item">💯</span>
+              <span class="emoji-item">🙏</span>
+              <span class="emoji-item">🤝</span>
+              <span class="emoji-item">💪</span>
+            </div>
+
+            <button type="button" class="emoji-toggle-btn" id="emoji-btn" title="이모티콘 선택">😀</button>
             <input type="text" id="chat-input" class="chat-input" placeholder="메시지를 입력하세요..." autocomplete="off">
             <button id="send-btn" class="send-btn">전송</button>
           </div>
@@ -565,14 +644,41 @@
 
     let isReplying = false; // 상대방 자동 응답 진행 중 여부
 
-    // 상대방 자동 응답 샘플 문구 목록
+    // DOM 요소 참조 추가
+    const emojiBtn = document.getElementById('emoji-btn');
+    const emojiPicker = document.getElementById('emoji-picker');
+
+    // 상대방 자동 응답 샘플 문구 (이모티콘 포함)
     const autoReplySamples = [
-      "네, 확인했습니다! 좋은 의견 감사합니다.",
-      "오, UI가 생각보다 훨씬 깔끔하고 반응이 빠른데요?",
-      "관련 내용 정리해서 팀 채널에도 한번 공유해 드리겠습니다.",
-      "네 알겠습니다. 추가로 필요한 사양이 있으시면 말씀해 주세요!",
-      "멋지네요! 실제 연동 작업도 무리 없이 진행할 수 있을 것 같습니다."
+      "네, 확인했습니다! 좋은 의견 감사합니다. 👍",
+      "오, UI가 생각보다 훨씬 깔끔하고 반응이 빠른데요? 🔥🎉",
+      "관련 내용 정리해서 팀 채널에도 한번 공유해 드리겠습니다. 🚀",
+      "네 알겠습니다. 추가로 필요한 사양이 있으시면 말씀해 주세요! 😊",
+      "멋지네요! 실제 연동 작업도 무리 없이 진행할 수 있을 것 같습니다. 💯✨"
     ];
+
+    // 이모지 팝업 토글
+    emojiBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      emojiPicker.classList.toggle('active');
+    });
+
+    // 이모지 클릭 시 입력창에 추가
+    emojiPicker.addEventListener('click', (e) => {
+      if (e.target.classList.contains('emoji-item')) {
+        const emoji = e.target.textContent;
+        chatInput.value += emoji;
+        chatInput.focus();
+        emojiPicker.classList.remove('active');
+      }
+    });
+
+    // 외부 영역 클릭 시 이모지 팝업 닫기
+    document.addEventListener('click', (e) => {
+      if (!emojiPicker.contains(e.target) && e.target !== emojiBtn) {
+        emojiPicker.classList.remove('active');
+      }
+    });
 
     function sendMessage() {
       const text = chatInput.value.trim();
