@@ -354,6 +354,33 @@
       font-weight: 500;
       background-color: #FFFFFF;
     }
+
+    /* -------------------------------------------------------------------------- */
+    /* 6. 상대방 '입력 중...' 애니메이션 (Typing Indicator)                          */
+    /* -------------------------------------------------------------------------- */
+    .typing-dots {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 12px;
+    }
+
+    .typing-dot {
+      width: 6px;
+      height: 6px;
+      background-color: #64748B;
+      border-radius: 50%;
+      animation: typing-bounce 1.4s infinite ease-in-out both;
+    }
+
+    .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+    .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+    .typing-dot:nth-child(3) { animation-delay: 0s; }
+
+    @keyframes typing-bounce {
+      0%, 80%, 100% { transform: scale(0); }
+      40% { transform: scale(1.0); }
+    }
   </style>
 </head>
 <body>
@@ -536,16 +563,22 @@
       scrollToBottom();
     }
 
+    let isReplying = false; // 상대방 자동 응답 진행 중 여부
+
+    // 상대방 자동 응답 샘플 문구 목록
+    const autoReplySamples = [
+      "네, 확인했습니다! 좋은 의견 감사합니다.",
+      "오, UI가 생각보다 훨씬 깔끔하고 반응이 빠른데요?",
+      "관련 내용 정리해서 팀 채널에도 한번 공유해 드리겠습니다.",
+      "네 알겠습니다. 추가로 필요한 사양이 있으시면 말씀해 주세요!",
+      "멋지네요! 실제 연동 작업도 무리 없이 진행할 수 있을 것 같습니다."
+    ];
+
     function sendMessage() {
       const text = chatInput.value.trim();
       if (!text) return;
 
-      const now = new Date();
-      const hours = now.getHours();
-      const minutes = now.getMinutes().toString().padStart(2, '0');
-      const ampm = hours >= 12 ? 'PM' : 'AM';
-      const formattedHours = hours % 12 || 12;
-      const timeStr = `${formattedHours}:${minutes} ${ampm}`;
+      const timeStr = getCurrentTimeString();
 
       const newMsg = {
         id: Date.now(),
@@ -563,6 +596,76 @@
 
       chatInput.value = '';
       chatInput.focus();
+
+      // 상대방 자동 답장 트리거 (1초 후 '입력 중...', 2.5초 후 답장 전송)
+      triggerAutoReply();
+    }
+
+    function triggerAutoReply() {
+      if (isReplying) return;
+      isReplying = true;
+
+      // 1초 뒤 상대방 '입력 중...' 표시
+      setTimeout(() => {
+        showTypingIndicator('김철수 수석');
+
+        // 입력 중 표시 1.5초 후(총 2.5초 뒤) 실제 답장 등록
+        setTimeout(() => {
+          hideTypingIndicator();
+
+          const randomReply = autoReplySamples[Math.floor(Math.random() * autoReplySamples.length)];
+          const replyMsg = {
+            id: Date.now(),
+            sender: '김철수 수석',
+            isMine: false,
+            text: randomReply,
+            time: getCurrentTimeString()
+          };
+
+          chatMessages.push(replyMsg);
+          renderChatMessages();
+          isReplying = false;
+        }, 1500);
+
+      }, 1000);
+    }
+
+    function showTypingIndicator(senderName) {
+      hideTypingIndicator(); // 기존 입력 중이 있다면 제거
+
+      const typingEl = document.createElement('div');
+      typingEl.id = 'typing-indicator';
+      typingEl.className = 'message-group other';
+      typingEl.innerHTML = `
+        <div class="sender-name">${senderName}</div>
+        <div class="message-bubble-wrapper">
+          <div class="message-bubble">
+            <div class="typing-dots">
+              <span class="typing-dot"></span>
+              <span class="typing-dot"></span>
+              <span class="typing-dot"></span>
+            </div>
+          </div>
+        </div>
+      `;
+      chatMessagesContainer.appendChild(typingEl);
+      scrollToBottom();
+    }
+
+    function hideTypingIndicator() {
+      const existing = document.getElementById('typing-indicator');
+      if (existing) {
+        existing.remove();
+      }
+    }
+
+    function getCurrentTimeString() {
+      const now = new Date();
+      const hours = now.getHours();
+      const minutes = now.getMinutes().toString().padStart(2, '0');
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      const formattedHours = hours % 12 || 12;
+      return `${formattedHours}:${minutes} ${ampm}`;
     }
 
     function scrollToBottom() {
