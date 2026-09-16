@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>사내 실시간 메신저</title>
+  <!-- Supabase JS SDK CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     /* -------------------------------------------------------------------------- */
     /* 1. 디자인 시스템 & CSS 변수 (Design System)                                  */
@@ -538,6 +540,18 @@
   <!-- ========================================================================== -->
   <script>
     // --------------------------------------------------------------------------
+    // Supabase 설정 및 초기화 (Google OAuth 연동)
+    // --------------------------------------------------------------------------
+    // 아래 두 값을 본인의 Supabase 프로젝트 설정(Project Settings -> API) 값으로 교체하세요.
+    const SUPABASE_URL = 'YOUR_SUPABASE_PROJECT_URL';
+    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+
+    let supabaseClient = null;
+    if (typeof supabase !== 'undefined' && SUPABASE_URL !== 'YOUR_SUPABASE_PROJECT_URL') {
+      supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    }
+
+    // --------------------------------------------------------------------------
     // 상태 변수 (State Management)
     // --------------------------------------------------------------------------
     let currentUser = null; // { name: '게스트', email: 'guest@company.com' }
@@ -567,28 +581,61 @@
     const sendBtn = document.getElementById('send-btn');
 
     // --------------------------------------------------------------------------
-    // 1. 로그인 / 로그아웃 처리
+    // 1. 로그인 / 로그아웃 및 인증 상태 관리
     // --------------------------------------------------------------------------
-    googleLoginBtn.addEventListener('click', () => {
-      // TODO: Supabase 연동 - Google OAuth 로그인 처리
-      // await supabase.auth.signInWithOAuth({ provider: 'google' });
-      
-      currentUser = { name: '게스트', email: 'guest@company.com' };
-      userNameDisplay.textContent = `👤 ${currentUser.name}`;
+    // Supabase 로그인 상태 변화 감지
+    if (supabaseClient) {
+      supabaseClient.auth.onAuthStateChange((event, session) => {
+        if (session && session.user) {
+          const user = session.user;
+          currentUser = {
+            name: user.user_metadata?.full_name || user.email?.split('@')[0] || '사용자',
+            email: user.email
+          };
+          userNameDisplay.textContent = `👤 ${currentUser.name}`;
+          loginScreen.style.display = 'none';
+          mainApp.style.display = 'flex';
+          renderChatMessages();
+        } else {
+          currentUser = null;
+          mainApp.style.display = 'none';
+          loginScreen.style.display = 'flex';
+        }
+      });
+    }
 
-      loginScreen.style.display = 'none';
-      mainApp.style.display = 'flex';
-      
-      renderChatMessages();
+    googleLoginBtn.addEventListener('click', async () => {
+      if (supabaseClient) {
+        // 실제 Supabase 구글 로그인 실행
+        const { error } = await supabaseClient.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: window.location.origin + window.location.pathname
+          }
+        });
+
+        if (error) {
+          alert('구글 로그인 실패: ' + error.message);
+        }
+      } else {
+        // Supabase Key 설정 전 임시 게스트 로그인 처리
+        currentUser = { name: '게스트', email: 'guest@company.com' };
+        userNameDisplay.textContent = `👤 ${currentUser.name}`;
+
+        loginScreen.style.display = 'none';
+        mainApp.style.display = 'flex';
+        renderChatMessages();
+      }
     });
 
-    logoutBtn.addEventListener('click', () => {
-      // TODO: Supabase 연동 - 로그아웃 처리
-      // await supabase.auth.signOut();
-
-      currentUser = null;
-      mainApp.style.display = 'none';
-      loginScreen.style.display = 'flex';
+    logoutBtn.addEventListener('click', async () => {
+      if (supabaseClient) {
+        await supabaseClient.auth.signOut();
+      } else {
+        currentUser = null;
+        mainApp.style.display = 'none';
+        loginScreen.style.display = 'flex';
+      }
     });
 
     // --------------------------------------------------------------------------
