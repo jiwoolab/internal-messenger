@@ -605,11 +605,15 @@
 
     googleLoginBtn.addEventListener('click', async () => {
       if (supabaseClient) {
-        // 실제 Supabase 구글 로그인 실행
+        // 실제 Supabase 구글 로그인 실행 (GitHub Pages 리다이렉트 주소 명시)
+        const redirectUrl = window.location.origin.includes('localhost') 
+          ? window.location.origin + window.location.pathname
+          : 'https://jiwoolab.github.io/internal-messenger/';
+
         const { error } = await supabaseClient.auth.signInWithOAuth({
           provider: 'google',
           options: {
-            redirectTo: window.location.origin + window.location.pathname
+            redirectTo: redirectUrl
           }
         });
 
